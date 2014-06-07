@@ -44,6 +44,7 @@ class StaticTupleString : public TupleElement
 {
 protected:
     char* value;  
+    StaticTupleString();
     
 public:
     StaticTupleString(std::string, Allocator&);
