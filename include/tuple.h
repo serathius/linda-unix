@@ -18,8 +18,8 @@ protected:
     TupleElement(unsigned short);
 
 public:
-    unsigned short int get_type();
     virtual ~TupleElement();
+    unsigned short int get_type();
 };
 
 class TupleInt : public TupleElement
