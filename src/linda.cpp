@@ -36,6 +36,7 @@ int Linda::init(key_t shm_key)
 		}			
 		
 		processCounter = shm->processCount;
+		// TODO increment procCount in critical section
 		
 	}
 	else if (shmId == -1)
@@ -68,6 +69,56 @@ int Linda::init(key_t shm_key)
 
 void Linda::output(Tuple &tuple)
 {
+	struct sembuf getCriticalSection[3]
+	{
+		0, 0, 0, 				// wait for sem_write to be 0
+		0, 1, SEM_UNDO, 		// then add 1 (get critical section)
+		1, (short)-processCounter, SEM_UNDO 	// wait for sem_read to be >= processCount (no reader in critical section)
+								// and reduce its value to 0 (get critical section exclusively)
+	};
+	
+	if (semop(semId, getCriticalSection, sizeof(getCriticalSection)) < 0)
+	{
+		std::cerr << "[Linda output] Error getting critical section. Errno = " << errno << std::endl;
+		return;	
+	}
+	
+	
+	// TODO adding tuple to tuples array
+	
+	
+	// check if anyone is waiting for new data to arrive
+	int semval = semctl(semId, 2, GETVAL);
+	
+	if (!semval) // if not, don't decrement semaphore value (it is already 0)
+	{
+		struct sembuf releaseCriticalSection[2]
+		{
+			1, processCounter, SEM_UNDO,	// release critical section for readers
+			0, -1, SEM_UNDO			// release critical section for writers
+		};
+		
+		if (semop(semId, releaseCriticalSection, sizeof(releaseCriticalSection)) < 0)
+		{
+			std::cerr << "[Linda output] Error releasing critical section. Errno = " << errno << std::endl;
+			return;	
+		}
+	}
+	else
+	{
+		struct sembuf releaseCriticalSection[3]
+		{
+			1, processCounter, SEM_UNDO,	// release critical section for readers
+			2, -1, SEM_UNDO,		// wake up readers waiting for new data
+			0, -1, SEM_UNDO			// release critical section for writers
+		};
+		
+		if (semop(semId, releaseCriticalSection, sizeof(releaseCriticalSection)) < 0)
+		{
+			std::cerr << "[Linda output] Error releasing critical section. Errno = " << errno << std::endl;
+			return;	
+		}
+	}
 	
 }
 

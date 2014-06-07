@@ -25,8 +25,10 @@ private:
 		ShmTuple tupleArray[MAX_TUPLES];
 	};
 	
-	int processCounter, semId;
+	int semId;
+	short processCounter;
 	SharedMemory *shm; 
+	
 	
 public:
 	
