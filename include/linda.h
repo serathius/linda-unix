@@ -36,8 +36,8 @@ public:
 	
 	int init(key_t shm_key);
 	void output(Tuple &tuple);
-	Tuple& input(std::string pattern, int timeout);
-	Tuple& read(std::string pattern, int timeout);
+	Tuple* input(std::string pattern, int timeout);
+	Tuple* read(std::string pattern, int timeout);
 };
 
 #endif /* LINDA_H */
