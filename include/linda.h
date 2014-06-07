@@ -7,26 +7,28 @@
 
 class Linda
 {
-	
-	int processCounter, semId;
-	SharedMemory *shm; 
-	
+public:	
+	static const int TUPLE_MAX_SIZE = 255; /* in bytes */
+	static const int MAX_TUPLES = 100;
+
+private:
 	struct ShmTuple
 	{
 		char valid;
-		char [TUPLE_MAX_SIZE] tupleData;
-	}
+		char tupleData[TUPLE_MAX_SIZE];
+	};
 	
 	struct SharedMemory
 	{
 		int processCount;
 		int semKey;
-		ShmTuple[MAX_TUPLES] tupleArray;
-	}
+		ShmTuple tupleArray[MAX_TUPLES];
+	};
+	
+	int processCounter, semId;
+	SharedMemory *shm; 
 	
 public:
-	const int TUPLE_MAX_SIZE = 255; /* in bytes */
-	const int MAX_TUPLES = 100;
 	
 	Linda() : processCounter(0), semId(0), shm(nullptr) {}
 	
@@ -34,6 +36,6 @@ public:
 	void output(Tuple &tuple);
 	Tuple& input(std::string pattern, int timeout);
 	Tuple& read(std::string pattern, int timeout);
-}
+};
 
 #endif /* LINDA_H */
