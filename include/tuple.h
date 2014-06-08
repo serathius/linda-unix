@@ -44,7 +44,7 @@ protected:
         this->bytes[index] = 'i';
         IntBytes integer;
         integer.value = value;
-        for(int i=0; i<sizeof(float); ++i)
+        for(int i=0; i<sizeof(int); ++i)
         {
             this->bytes[index + 1 + i] = integer.bytes[i];
         }
