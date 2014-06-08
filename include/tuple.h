@@ -3,7 +3,6 @@
 
 #include <string>
 #include <cstring>
-#include <cstdio>
 #include "exceptions.h"
 
 const int TUPLE_MAX_SIZE = 255;
