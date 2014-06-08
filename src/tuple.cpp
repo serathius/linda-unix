@@ -40,12 +40,8 @@ int Tuple<>::get(int index)
     char * element = this->get_element(index);
     if (element[0] != 'i')
         throw TupleWrongTypeError();
-    IntBytes integer;
-    for(int i=0; i<sizeof(float); ++i)
-    {
-        integer.bytes[i] = element[i + 1];
-    }
-    return integer.value;
+    ByteType<int> integer(element + 1);
+    return integer.get_value();
 }
 
 template<>
@@ -54,12 +50,8 @@ float Tuple<>::get(int index)
     char * element = this->get_element(index);
     if (element[0] != 'f')
         throw TupleWrongTypeError();
-    FloatBytes f;
-    for(int i=0; i<sizeof(float); ++i)
-    {
-        f.bytes[i] = element[i + 1];
-    }
-    return f.value;
+    ByteType<float> f(element + 1);
+    return f.get_value();
 }
 
 template<>

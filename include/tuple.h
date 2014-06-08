@@ -7,17 +7,43 @@
 
 const int TUPLE_MAX_SIZE = 255;
 
-union IntBytes
+template <typename T>
+class ByteType
 {
-    char bytes[sizeof(int)];
-    int value;
+    union Type
+    {
+        char bytes[sizeof(int)];
+        T value;
+    };
+    Type value;
+    
+public:
+    ByteType(T value)
+    {
+        this->value.value = value;
+    }
+    ByteType(char* value)
+    {
+       for(int i=0; i<sizeof(T); ++i)
+        {
+            this->value.bytes[i] = value[i];
+        }
+    }
+    T get_value()
+    {
+        return this->value.value;
+    }
+    void get_bytes(char * value)
+    {
+        for(int i=0; i<sizeof(T); ++i)
+        {
+            value[i] = this->value.bytes[i];
+        }
+    }
 };
 
-union FloatBytes
-{
-    char bytes[sizeof(float)];
-    float value;
-};
+template class ByteType<int>;
+template class ByteType<float>;
 
 template<typename... Types> class Tuple;
 
@@ -42,12 +68,9 @@ protected:
     : Tuple<Tail...>((int)(index + 1 + sizeof(int)), tail...)
     {
         this->bytes[index] = 'i';
-        IntBytes integer;
-        integer.value = value;
-        for(int i=0; i<sizeof(int); ++i)
-        {
-            this->bytes[index + 1 + i] = integer.bytes[i];
-        }
+        ByteType<int> integer(value);
+        integer.get_value();
+        integer.get_bytes(this->bytes + index + 1);
     }
 public:
     Tuple(const int& value, const Tail&... tail) : Tuple(0, value, tail...)
@@ -64,12 +87,8 @@ protected:
     : Tuple<Tail...>((int)(index + 1 + sizeof(int)), tail...)
     {
         this->bytes[index] = 'f';
-        FloatBytes f;
-        f.value = value;
-        for(int i=0; i<sizeof(float); ++i)
-        {
-            this->bytes[index + 1 + i] = f.bytes[i];
-        }
+        ByteType<float> f(value);
+        f.get_bytes(this->bytes + index + 1);
     }
 public:
     Tuple(const float& value, const Tail&... tail) : Tuple(0, value, tail...)
