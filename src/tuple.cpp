@@ -34,7 +34,8 @@ Tuple<>::Tuple(int index)
 
 }
 
-int Tuple<>::get_int(int index)
+template<>
+int Tuple<>::get(int index)
 {
     char * element = this->get_element(index);
     if (element[0] != 'i')
@@ -47,7 +48,8 @@ int Tuple<>::get_int(int index)
     return integer.value;
 }
 
-float Tuple<>::get_float(int index)
+template<>
+float Tuple<>::get(int index)
 {
     char * element = this->get_element(index);
     if (element[0] != 'f')
@@ -60,7 +62,8 @@ float Tuple<>::get_float(int index)
     return f.value;
 }
 
-std::string Tuple<>::get_string(int index)
+template<>
+std::string Tuple<>::get(int index)
 {
     char * element = this->get_element(index);
     if (element[0] != 's')

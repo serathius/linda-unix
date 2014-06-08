@@ -30,9 +30,8 @@ protected:
     
 public:
     Tuple(int index);
-    virtual int get_int(int);
-    virtual float get_float(int);
-    virtual std::string get_string(int);
+    template <typename T> 
+    T get(int);
 };
 
 template<typename... Tail>
