@@ -6,7 +6,7 @@
 #include <cstdio>
 #include "exceptions.h"
 
-#define TUPLE_SIZE 255
+const int TUPLE_MAX_SIZE = 255;
 
 union IntBytes
 {
@@ -26,7 +26,7 @@ template<>
 class Tuple<>
 {
 protected:
-    char bytes[TUPLE_SIZE] = {'\0'};
+    char bytes[TUPLE_MAX_SIZE] = {'\0'};
     char *  get_element(int); 
     
 public:

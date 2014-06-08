@@ -8,7 +8,7 @@ char * Tuple<>::get_element(int index)
     int pos = 0;
     while(index > 0)
     {
-        if (pos >= TUPLE_SIZE)
+        if (pos >= TUPLE_MAX_SIZE)
             throw IndexOutOfBoundsError();
         switch(this->bytes[pos])
         {
