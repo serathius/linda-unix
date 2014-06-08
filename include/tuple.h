@@ -26,10 +26,10 @@ class Tuple<>
 {
 protected:
     char bytes[TUPLE_MAX_SIZE] = {'\0'};
-    char *  get_element(int); 
+    char *  get_element(int);     
+    Tuple(int index);
     
 public:
-    Tuple(int index);
     template <typename T> 
     T get(int);
 };
