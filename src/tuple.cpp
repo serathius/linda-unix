@@ -1,88 +1,69 @@
 #include <cstring>
 
 #include "../include/tuple.h"
+#include "../include/exceptions.h"
 
-
-TupleElement::TupleElement(unsigned short type)
+char * Tuple<>::get_element(int index)
 {
-    this->type = type;
+    int pos = 0;
+    while(index > 0)
+    {
+        if (pos >= TUPLE_SIZE)
+            throw IndexOutOfBoundsError();
+        switch(this->bytes[pos])
+        {
+            case 'i': 
+                pos += 1 + sizeof(int);
+                break;
+            case 'f':
+                pos += 1 + sizeof(float);
+                break;
+            case 's':
+                pos += 2 + strlen(this->bytes + pos + 1);
+                break;
+            default:
+                throw IndexOutOfBoundsError();
+        }
+        index--;
+    }
+    return this->bytes + pos;
 }
 
-TupleElement::~TupleElement()
+Tuple<>::Tuple(int index)
 {
-    
+
 }
 
-unsigned short TupleElement::get_type()
+int Tuple<>::get_int(int index)
 {
-    return this->type;
+    char * element = this->get_element(index);
+    if (element[0] != 'i')
+        throw TupleWrongTypeError();
+    IntBytes integer;
+    for(int i=0; i<sizeof(float); ++i)
+    {
+        integer.bytes[i] = element[i + 1];
+    }
+    return integer.value;
 }
 
-TupleInt::TupleInt(int value) : TupleElement(TupleElementType::INT)
+float Tuple<>::get_float(int index)
 {
-    this->value = value;
+    char * element = this->get_element(index);
+    if (element[0] != 'f')
+        throw TupleWrongTypeError();
+    FloatBytes f;
+    for(int i=0; i<sizeof(float); ++i)
+    {
+        f.bytes[i] = element[i + 1];
+    }
+    return f.value;
 }
 
-int TupleInt::get_value()
+std::string Tuple<>::get_string(int index)
 {
-    return this->value;
-}
-
-TupleFloat::TupleFloat(float value) : TupleElement(TupleElementType::FLOAT)
-{
-    this->value = value;
-}
-
-float TupleFloat::get_value()
-{
-    return this->value;
-}
-
-StaticTupleString::StaticTupleString() 
-    : TupleElement(TupleElementType::STRING)
-{
-    this->value = "";
-}
-
-StaticTupleString::StaticTupleString(std::string value, Allocator& alloc)
-    : TupleElement(TupleElementType::STRING)
-{
-    this->value = (char*) alloc.allocate(value.length() + 1);
-    strcpy(this->value, value.c_str());
-}
-
-StaticTupleString::StaticTupleString(const char * value, Allocator& alloc) 
-    : TupleElement(TupleElementType::STRING)
-{
-    this->value = (char*) alloc.allocate(strlen(value) + 1);
-    strcpy(this->value, value);
-}
-
-StaticTupleString::~StaticTupleString()
-{
-    
-}
-
-char* StaticTupleString::get_value()
-{
-    char* str = new char[strlen(this->value) + 1];
-    strcpy(str, this->value);
-    return str;
-}
-
-TupleString::TupleString(std::string value)
-{
-    this->value = new char[value.length() + 1];
-    strcpy(this->value, value.c_str());
-}
-
-TupleString::TupleString(const char* value)
-{
-    this->value = new char[strlen(value) + 1];
-    strcpy(this->value, value);
-}
-
-TupleString::~TupleString()
-{
-    delete [] this->value;
+    char * element = this->get_element(index);
+    if (element[0] != 's')
+        throw TupleWrongTypeError();
+    return std::string(element + 1);
 }
