@@ -5,13 +5,17 @@ TEST_OBJECTS = $(TESTS:.cpp=.o)
 SOURCES = $(wildcard src/*.cpp)
 OBJECTS = $(SOURCES:.cpp=.o)
 CFLAGS = -std=c++11
-EXEC = bin/linda-unix
+EXEC = lib/linda-unix.a
+
+$(EXEC): $(OBJECTS)
+	@-mkdir lib 2>/dev/null || true
+	@ar rcs $(EXEC) $(OBJECTS)
 
 %.o: %.cpp
 	@g++ $(CFLAGS) -c $< -o $@
 
-test : libgtest.a $(TESTS) $(OBJECTS)
-	@g++ $(CFLAGS) $(TEST_SYSTEM_FLAGS) -pthread $(TESTS) $(OBJECTS) libgtest.a -o test.o
+test : libgtest.a $(TESTS) $(EXEC)
+	@g++ $(CFLAGS) $(TEST_SYSTEM_FLAGS) -pthread $(TESTS) $(EXEC) libgtest.a -o test.o
 
 libgtest.a: gmock-all.o gtest-all.o
 	@ar -rv libgtest.a gmock-all.o gtest-all.o 
@@ -29,4 +33,4 @@ clean:
 	@-rm libgtest.a 2>/dev/null || true
 	@-rm $(OBJECTS) 2>/dev/null || true
 	@-rm $(TEST_OBJECTS) 2>/dev/null || true
-	@-rm $(EXEC) 2>/dev/null || true
+	@-rm lib -rf 2>/dev/null || true
