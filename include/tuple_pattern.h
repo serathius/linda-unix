@@ -20,8 +20,7 @@ protected:
     }
     
 public:
-    template<typename... Elements>
-    bool match(const Tuple<Elements...>& tuple)
+    bool match(const GenericTuple& tuple)
     {
         const char * actual = tuple.bytes;
         for(auto pattern: this->patterns)
