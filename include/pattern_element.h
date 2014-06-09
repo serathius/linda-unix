@@ -124,15 +124,16 @@ public:
     }
     bool match(const char* value)
     {
+        std::string temp = value + 1;
         switch(this->sign)
         {
-            case SignType::Equal:
-            {
-                std::string temp = value + 1;
+            case SignType::Equal:;
                 return temp == this->value;
-            }
             case SignType::Any:
+            {
+                this->size = (int) strlen(value) + 1;
                 return true;
+            }
         }
     }
 };
