@@ -3,7 +3,7 @@
 #include "../include/tuple.h"
 #include "../include/exceptions.h"
 
-char * Tuple<>::get_element(int index)
+char * GenericTuple::get_element(int index)
 {
     int pos = 0;
     while(index > 0)
@@ -35,7 +35,7 @@ Tuple<>::Tuple(int index)
 }
 
 template<>
-int Tuple<>::get(int index)
+int GenericTuple::get<int>(int index)
 {
     char * element = this->get_element(index);
     if (element[0] != 'i')
@@ -45,7 +45,7 @@ int Tuple<>::get(int index)
 }
 
 template<>
-float Tuple<>::get(int index)
+float GenericTuple::get<float>(int index)
 {
     char * element = this->get_element(index);
     if (element[0] != 'f')
@@ -55,7 +55,7 @@ float Tuple<>::get(int index)
 }
 
 template<>
-std::string Tuple<>::get(int index)
+std::string GenericTuple::get<std::string>(int index)
 {
     char * element = this->get_element(index);
     if (element[0] != 's')

@@ -46,19 +46,27 @@ template class ByteType<float>;
 
 const int TUPLE_MAX_SIZE = 255;
 template <typename... Elements> class TuplePattern;
-template<typename... Types> class Tuple;
 
-template<> class Tuple<>
+class GenericTuple
 {
-    friend class TuplePattern<>;
 protected:
     char bytes[TUPLE_MAX_SIZE] = {'\0'};
-    char *  get_element(int);     
-    Tuple(int index);
+    
+    char *  get_element(int);   
     
 public:
     template <typename T> 
     T get(int);
+};
+
+template<typename... Types> class Tuple;
+
+template<> class Tuple<> : public GenericTuple
+{
+    friend class TuplePattern<>;
+
+protected:
+    Tuple(int index);
 };
 
 template<typename... Tail>
