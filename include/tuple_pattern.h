@@ -1,5 +1,5 @@
-#ifndef TUPLEPATTERN_H
-#define	TUPLEPATTERN_H
+#ifndef TUPLE_PATTERN_H
+#define	TUPLE_PATTERN_H
 
 #include <list>
 #include <memory>
