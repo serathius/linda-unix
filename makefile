@@ -12,19 +12,19 @@ $(EXEC): $(OBJECTS)
 	@ar rcs $(EXEC) $(OBJECTS)
 
 %.o: %.cpp
-	@g++ $(CFLAGS) -c $< -o $@
+	@$(CXX) $(CFLAGS) -c $< -o $@
 
 test : libgtest.a $(TESTS) $(EXEC)
-	@g++ $(CFLAGS) $(TEST_SYSTEM_FLAGS) -pthread $(TESTS) $(EXEC) libgtest.a -o test.o
+	@$(CXX) $(CFLAGS) $(TEST_SYSTEM_FLAGS) -pthread $(TESTS) $(EXEC) libgtest.a -o test.o
 
 libgtest.a: gmock-all.o gtest-all.o
 	@ar -rv libgtest.a gmock-all.o gtest-all.o 
 	
 gmock-all.o:
-	@g++ $(TEST_SYSTEM_FLAGS) $(TEST_I_FLAGS) -c gmock-1.7.0/src/gmock-all.cc
+	@$(CXX) $(TEST_SYSTEM_FLAGS) $(TEST_I_FLAGS) -c gmock-1.7.0/src/gmock-all.cc
 
 gtest-all.o:
-	@g++ $(TEST_SYSTEM_FLAGS) $(TEST_I_FLAGS) -c gtest-1.7.0/src/gtest-all.cc
+	@$(CXX) $(TEST_SYSTEM_FLAGS) $(TEST_I_FLAGS) -c gtest-1.7.0/src/gtest-all.cc
 
 clean:
 	@-rm test.o 2>/dev/null || true
