@@ -24,6 +24,10 @@ class IndexOutOfBoundsError : public LindaError
     
 };
 
+class UnknownPattern : public LindaError
+{
+    
+};
 
 #endif	/* EXCEPTIONS_H */
 

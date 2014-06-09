@@ -5,6 +5,8 @@
 #include <cstring>
 #include "exceptions.h"
 
+template <typename... Elements> class TuplePattern;
+
 const int TUPLE_MAX_SIZE = 255;
 
 template <typename T>
@@ -22,7 +24,7 @@ public:
     {
         this->value.value = value;
     }
-    ByteType(char* value)
+    ByteType(const char* value)
     {
        for(int i=0; i<sizeof(T); ++i)
         {
@@ -50,6 +52,7 @@ template<typename... Types> class Tuple;
 template<> 
 class Tuple<>
 {
+    friend class TuplePattern<>;
 protected:
     char bytes[TUPLE_MAX_SIZE] = {'\0'};
     char *  get_element(int);     
@@ -63,6 +66,7 @@ public:
 template<typename... Tail>
 class Tuple <int, Tail...> : public Tuple<Tail...>
 {
+    friend class TuplePattern<int, Tail...>;
 protected:
     Tuple(int index, const int& value, const Tail&... tail) 
     : Tuple<Tail...>((int)(index + 1 + sizeof(int)), tail...)
