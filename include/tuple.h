@@ -1,5 +1,5 @@
-#ifndef TUPLE_H
-#define	TUPLE_H
+#ifndef LINDA_TUPLE_H
+#define	LINDA_TUPLE_H
 
 #include <string>
 #include <cstring>
