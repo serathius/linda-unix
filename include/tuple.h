@@ -5,9 +5,6 @@
 #include <cstring>
 #include "exceptions.h"
 
-template <typename... Elements> class TuplePattern;
-
-const int TUPLE_MAX_SIZE = 255;
 
 template <typename T>
 class ByteType
@@ -47,10 +44,11 @@ public:
 template class ByteType<int>;
 template class ByteType<float>;
 
+const int TUPLE_MAX_SIZE = 255;
+template <typename... Elements> class TuplePattern;
 template<typename... Types> class Tuple;
 
-template<> 
-class Tuple<>
+template<> class Tuple<>
 {
     friend class TuplePattern<>;
 protected:
