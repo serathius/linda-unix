@@ -49,11 +49,12 @@ template <typename... Elements> class TuplePattern;
 
 class GenericTuple
 {
+    friend class TuplePattern<>;
 protected:
     char bytes[TUPLE_MAX_SIZE] = {'\0'};
     
     char *  get_element(int);   
-    
+
 public:
     template <typename T> 
     T get(int);
@@ -63,8 +64,6 @@ template<typename... Types> class Tuple;
 
 template<> class Tuple<> : public GenericTuple
 {
-    friend class TuplePattern<>;
-
 protected:
     Tuple(int index);
 };
@@ -72,7 +71,6 @@ protected:
 template<typename... Tail>
 class Tuple <int, Tail...> : public Tuple<Tail...>
 {
-    friend class TuplePattern<int, Tail...>;
 protected:
     Tuple(int index, const int& value, const Tail&... tail) 
     : Tuple<Tail...>((int)(index + 1 + sizeof(int)), tail...)
