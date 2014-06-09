@@ -44,7 +44,7 @@ public:
 template class ByteType<int>;
 template class ByteType<float>;
 
-const int TUPLE_MAX_SIZE = 255;
+static const int TUPLE_MAX_SIZE = 255;
 template <typename... Elements> class TuplePattern;
 
 class GenericTuple
