@@ -65,7 +65,7 @@ public:
             case SignType::GreatherThen:
                 return byte_value.get_value() > this->value;
             case SignType::GreatherThenEqual:
-                return byte_value.get_value() <= this->value; 
+                return byte_value.get_value() >= this->value; 
             case SignType::Any:
                 return true;
         }
@@ -105,7 +105,7 @@ public:
             case SignType::GreatherThen:
                 return byte_value.get_value() > this->value;
             case SignType::GreatherThenEqual:
-                return byte_value.get_value() <= this->value; 
+                return byte_value.get_value() >= this->value; 
             case SignType::Any:
                 return true;
         }
