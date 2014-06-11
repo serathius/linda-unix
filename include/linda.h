@@ -150,6 +150,8 @@ Tuple<Elements...>* Linda::input(TuplePattern<Elements...> pattern, int timeout)
 {	
 	bool got = false; // indicates if tuple is found and downloaded
 	
+	time_t begin, end;
+	
 	struct shmid_ds desc;
 	
 	// get current attached processes count
@@ -173,6 +175,7 @@ Tuple<Elements...>* Linda::input(TuplePattern<Elements...> pattern, int timeout)
 		//std::cout << "write="<<semctl(semId, 0, GETVAL)<<std::flush;
 		//std::cout << "read="<<semctl(semId, 1, GETVAL)<<std::flush;
 		//std::cout << "pC="<<(shm->processCount)<<std::flush;
+		begin = time(NULL);
 		if (semtimedop(semId, getCriticalSection, sizeof(getCriticalSection)/sizeof(sembuf), &timeout_struct) < 0)
 		{
 			int res = errno;
@@ -192,7 +195,7 @@ Tuple<Elements...>* Linda::input(TuplePattern<Elements...> pattern, int timeout)
 				
 				if (pattern.match(shm->tupleArray[i].tuple))
 				{
-					std::cout << "Matching tuple found" << std::endl<<std::flush;
+					//std::cout << "Matching tuple found" << std::endl<<std::flush;
 					tuple = new Tuple<Elements...>((Tuple<Elements...>&)shm->tupleArray[i].tuple);
 					shm->tupleArray[i].valid = TUPLE_INVALID;
 					got = true;
@@ -205,6 +208,13 @@ Tuple<Elements...>* Linda::input(TuplePattern<Elements...> pattern, int timeout)
 		
 		if (!got)
 		{
+			end = time(NULL);
+			timeout_struct.tv_sec = timeout_struct.tv_sec - (begin - end);
+			if (timeout_struct.tv_sec <= 0)
+			{
+				std::cerr << "[Linda input] Timeout" << std::endl;
+				return nullptr;
+			}
 			
 			// get current processes count (could have changed during searching)
 			shmctl(shmId, IPC_STAT, &desc);
@@ -223,7 +233,7 @@ Tuple<Elements...>* Linda::input(TuplePattern<Elements...> pattern, int timeout)
 			{
 				int err = errno;
 				if (errno == EAGAIN)
-					std::cerr << "[Linda input] timeout" << std::endl;
+					std::cerr << "[Linda input] Timeout" << std::endl;
 				else std::cerr << "[Linda input] Error releasing critical section. Errno = " << errno << std::endl;
 				return nullptr;	
 			}
@@ -253,25 +263,26 @@ Tuple<Elements...>* Linda::input(TuplePattern<Elements...> pattern, int timeout)
 
 template <typename... Elements>
 Tuple<Elements...>* Linda::read(TuplePattern<Elements...> pattern, int timeout)
-{
-	// TODO decreasing timeout after each semaphore operation
+{	
+	bool got = false; // indicates if tuple is found
+
+	time_t begin, end;
+
+	struct timespec timeout_struct;
+	timeout_struct.tv_sec = (time_t)timeout;
+	timeout_struct.tv_nsec = 0;
 	
-	bool got = false; // indicates if tuple is found and downloaded
-	
-	
+	Tuple<Elements...>* tuple;
+
 	struct sembuf getCriticalSection[1] = 
 	{
 		SEM_READ, -1, SEM_UNDO 	// wait for sem_read to be >= 1 (at least one more reader can get in)
 								// and decrease its value
 	};
 	
-	struct timespec timeout_struct;
-	timeout_struct.tv_sec = (time_t)timeout;
-	timeout_struct.tv_nsec = 0;
-	
-	Tuple<Elements...>* tuple;
 	while (!got)
 	{
+		begin = time(NULL);
 		if (semtimedop(semId, getCriticalSection, sizeof(getCriticalSection)/sizeof(sembuf), &timeout_struct) < 0)
 		{
 			int err = errno;
@@ -283,13 +294,11 @@ Tuple<Elements...>* Linda::read(TuplePattern<Elements...> pattern, int timeout)
 		
 		for (int i = 0; i < MAX_TUPLES; ++i)
 		{
-			//std::cout << i << " " << (int)(shm->tupleArray[i].valid) << std::endl<<std::flush;
-			//std::cout<<(shm->tupleArray[i].valid)<<std::flush;
 			if (shm->tupleArray[i].valid == TUPLE_VALID)
 			{
 				if (pattern.match(shm->tupleArray[i].tuple))
 				{
-					std::cout << "Matching tuple found" << std::endl<<std::flush;
+					//std::cout << "Matching tuple found" << std::endl<<std::flush;
 					tuple = new Tuple<Elements...>((Tuple<Elements...>&)shm->tupleArray[i].tuple);
 					got = true;
 					break;
@@ -300,6 +309,14 @@ Tuple<Elements...>* Linda::read(TuplePattern<Elements...> pattern, int timeout)
 		
 		if (!got)
 		{
+			end = time(NULL);
+			timeout_struct.tv_sec = timeout_struct.tv_sec - (begin - end);
+			if (timeout_struct.tv_sec <= 0)
+			{
+				std::cerr << "[Linda input] timeout" << std::endl;
+				return nullptr;
+			}
+			
 			struct sembuf *releaseCriticalSection;
 			int semval = semctl(semId, SEM_WAIT, GETVAL);
 			int size = 0;

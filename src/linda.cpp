@@ -84,7 +84,6 @@ int Linda::init(key_t shm_key)
 	struct sembuf increment[1] = 
 	{
 		SEM_READ, 1, 0,
-		//SEM_WAIT, 1, 0
 	};
 	if (semop(semId, increment, sizeof(increment)/sizeof(sembuf)) < 0)
 	{
