@@ -41,7 +41,6 @@ int Linda::init(key_t shm_key)
 		std::cout << "semId="<<semId;
 		processCounter = ++(shm->processCount);
 		std::cout << "processCounter="<<processCounter;
-		// TODO increment procCount in critical section
 	
 		struct sembuf getCriticalSection[1] = 
 		{
@@ -70,7 +69,7 @@ int Linda::init(key_t shm_key)
 	}
 	
 	shm->processCount = 1;
-	int key = 1234; // should probably generate it randomly in loop
+	int key = 1234;
 	
 	if ((semId = semget(key, 3, IPC_CREAT | IPC_EXCL | 0777))  == -1)
 	{
@@ -100,19 +99,28 @@ int Linda::init(key_t shm_key)
 Linda::~Linda()
 {
 	std::cout<<"Destroying..."<<std::endl;
-	struct sembuf getCriticalSection[1] = 
-	{
-		(unsigned short)1, -1, 0
-	};
-	if (semop(semId, getCriticalSection, 1) < 0)
-	{
-		std::cerr << "[Linda input] Error refreshing readers' semaphore limit. Errno = " << errno << std::endl;
-	}
-	
 	if (shm != nullptr)
 	{
-		(shm->processCount)--;
-		shmdt(shm);
+		struct sembuf getCriticalSection[1] = 
+		{
+			SEM_READ, -1, 0
+		};
+		if (semop(semId, getCriticalSection, 1) < 0)
+		{
+			std::cerr << "[Linda input] Error refreshing readers' semaphore limit. Errno = " << errno << std::endl;
+		}
+
+		struct shmid_ds desc;
+		shmctl(shmId, IPC_STAT, &desc);
+		
+		if (desc.shm_nattch == 1)
+		{
+			shmdt(shm);
+			shmctl(shmId, IPC_RMID, NULL); // delete shared memory segment
+			semctl(semId, 3, IPC_RMID, NULL); // delete semaphores set
+		}
+		else
+			shmdt(shm);
 	}
 }
 
