@@ -13,7 +13,7 @@ int Linda::init(key_t shm_key)
 {
 
 	// try to create new shared memory segment
-	int shmId = shmget(shm_key, 8 + MAX_TUPLES*(TUPLE_MAX_SIZE + 1), IPC_CREAT | IPC_EXCL | 0777);
+	shmId = shmget(shm_key, 8 + MAX_TUPLES*(TUPLE_MAX_SIZE + 1), IPC_CREAT | IPC_EXCL | 0777);
 
 	if (shmId < 0 && errno == EEXIST) // someone already created shm segment
 	{
@@ -45,9 +45,9 @@ int Linda::init(key_t shm_key)
 	
 		struct sembuf getCriticalSection[1] = 
 		{
-			(unsigned short)1, 1, 0
+			SEM_READ, 1, 0,
 		};
-		if (semop(semId, getCriticalSection, 1) < 0)
+		if (semop(semId, getCriticalSection, sizeof(getCriticalSection)/sizeof(sembuf)) < 0)
 		{
 			std::cerr << "[Linda input] Error refreshing readers' semaphore limit. Errno = " << errno << std::endl;
 			return 7;
@@ -82,11 +82,12 @@ int Linda::init(key_t shm_key)
 	
 	for (int i = 0; i < MAX_TUPLES; i++) shm->tupleArray[i].valid = TUPLE_INVALID;
 	
-	struct sembuf getCriticalSection[1] = 
+	struct sembuf increment[1] = 
 	{
-		(unsigned short)1, 1, 0
+		SEM_READ, 1, 0,
+		//SEM_WAIT, 1, 0
 	};
-	if (semop(semId, getCriticalSection, 1) < 0)
+	if (semop(semId, increment, sizeof(increment)/sizeof(sembuf)) < 0)
 	{
 		std::cerr << "[Linda input] Error refreshing readers' semaphore limit. Errno = " << errno << std::endl;
 		return 7;
