@@ -80,6 +80,7 @@ int Linda::init(key_t shm_key)
 	std::cout << "semId" << semId;
 	shm->semKey = key;
 	
+	for (int i = 0; i < MAX_TUPLES; i++) shm->tupleArray[i].valid = TUPLE_INVALID;
 	
 	struct sembuf getCriticalSection[1] = 
 	{
@@ -90,6 +91,7 @@ int Linda::init(key_t shm_key)
 		std::cerr << "[Linda input] Error refreshing readers' semaphore limit. Errno = " << errno << std::endl;
 		return 7;
 	}
+	std::cout<<"Incremented sem_read"<<std::endl;
 	return 0;
 }
 
