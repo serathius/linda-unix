@@ -296,112 +296,115 @@ Tuple<Elements...>* Linda::input(TuplePattern<Elements...> pattern, int timeout)
 template <typename... Elements>
 Tuple<Elements...>* Linda::read(TuplePattern<Elements...> pattern, int timeout)
 {	
-	if (!shm || !timeout) return nullptr;
-	
-	if (debug) std::cout << "[Linda] read" << std::endl;
-	
-	bool got = false; // indicates if tuple is found
+    if (!shm || !timeout) 
+        return nullptr;
 
-	time_t begin, end;
+    if (debug) 
+        std::cout << "[Linda] read" << std::endl;
 
-	struct timespec timeout_struct;
-	timeout_struct.tv_sec = (time_t)timeout;
-	timeout_struct.tv_nsec = 0;
-	
-	Tuple<Elements...>* tuple;
+    bool got = false; // indicates if tuple is found
 
-	struct sembuf getCriticalSection[1] = 
-	{
-		SEM_READ, -1, SEM_UNDO 	// wait for sem_read to be >= 1 (at least one more reader can get in)
-								// and decrease its value
-	};
-	
-	while (!got)
-	{
-		begin = time(NULL);
-		if (semtimedop(semId, getCriticalSection, sizeof(getCriticalSection)/sizeof(sembuf), &timeout_struct) < 0)
-		{
-			int err = errno;
-			if (errno == EAGAIN) 
-				if (debug) std::cerr << "[Linda read] Timeout" << std::endl;
-			else if (debug) std::cerr << "[Linda read] Error getting critical section. Errno = " << errno << std::endl;
-			return nullptr;	
-		}
-		
-		for (int i = 0; i < MAX_TUPLES; ++i)
-		{
-			if (shm->tupleArray[i].valid == TUPLE_VALID)
-			{
-				if (pattern.match(shm->tupleArray[i].tuple))
-				{
-					tuple = new Tuple<Elements...>((Tuple<Elements...>&)shm->tupleArray[i].tuple);
-					got = true;
-					break;
-				}
-					
-			}
-		}
-		
-		if (!got)
-		{
-			end = time(NULL);
-			timeout_struct.tv_sec = timeout_struct.tv_sec - (begin - end);
-			if (timeout_struct.tv_sec <= 0)
-			{
-				if (debug) std::cerr << "[Linda input] timeout" << std::endl;
-				return nullptr;
-			}
-			
-			struct sembuf *releaseCriticalSection;
-			int semval = semctl(semId, SEM_WAIT, GETVAL);
-			int size = 0;
-			if (semval)
-			{
-				struct sembuf rel[1] = 
-				{
-					SEM_READ, 1, SEM_UNDO	// release critical section for another reader
-				};
-				releaseCriticalSection = rel;
-				size = 1;
-			}
-			else 
-			{
-				struct sembuf rel[2] = 
-				{
-					SEM_WAIT, 1, SEM_UNDO,	// set sem_wait to let some writer decrement it
-					SEM_READ, 1, SEM_UNDO	// release critical section for another reader
-				};
-				releaseCriticalSection = rel;
-				size = 2;
-			}
-				
-			struct sembuf wait[1] = { SEM_WAIT, 0, 0 };		// wait for sem_wait to be 0
-			
-			if ((semop(semId, releaseCriticalSection, size) < 0)
-				|| semtimedop(semId, wait, sizeof(wait)/sizeof(sembuf), &timeout_struct) < 0)
-			{
-				int err = errno;
-				if (errno == EAGAIN)
-					if (debug) std::cerr << "[Linda read] Timeout" << std::endl;
-				else if (debug) std::cerr << "[Linda read] Error releasing critical section. Errno = " << errno << std::endl;
-				return nullptr;	
-			}
-		}
-		else
-		{
-			struct sembuf releaseCriticalSection[1] = 
-			{
-				SEM_READ, 1, SEM_UNDO,	// release critical section for another reader
-			};
-			
-			if (semop(semId, releaseCriticalSection, 1) < 0)
-			{
-				if (debug) std::cerr << "[Linda input] Error releasing critical section. Errno = " << errno << std::endl;
-				return nullptr;	
-			}
-			return tuple;
-		}
-	} // while
+    time_t begin, end;
+
+    struct timespec timeout_struct;
+    timeout_struct.tv_sec = (time_t)timeout;
+    timeout_struct.tv_nsec = 0;
+
+    Tuple<Elements...>* tuple;
+
+    struct sembuf getCriticalSection[1] = 
+    {
+        SEM_READ, -1, SEM_UNDO 	// wait for sem_read to be >= 1 (at least one more reader can get in)
+                                // and decrease its value
+    };
+
+    while (!got)
+    {
+        begin = time(NULL);
+        if (semtimedop(semId, getCriticalSection, sizeof(getCriticalSection)/sizeof(sembuf), &timeout_struct) < 0)
+        {
+                int err = errno;
+                if (errno == EAGAIN) 
+                        if (debug) std::cerr << "[Linda read] Timeout" << std::endl;
+                else if (debug) std::cerr << "[Linda read] Error getting critical section. Errno = " << errno << std::endl;
+                return nullptr;	
+        }
+
+        for (int i = 0; i < MAX_TUPLES; ++i)
+        {
+                if (shm->tupleArray[i].valid == TUPLE_VALID)
+                {
+                        if (pattern.match(shm->tupleArray[i].tuple))
+                        {
+                                tuple = new Tuple<Elements...>((Tuple<Elements...>&)shm->tupleArray[i].tuple);
+                                got = true;
+                                break;
+                        }
+
+                }
+        }
+
+        if (!got)
+        {
+            end = time(NULL);
+            timeout_struct.tv_sec = timeout_struct.tv_sec - (begin - end);
+            if (timeout_struct.tv_sec <= 0)
+            {
+                if (debug) 
+                    std::cerr << "[Linda input] timeout" << std::endl;
+                return nullptr;
+            }
+
+            struct sembuf *releaseCriticalSection;
+            int semval = semctl(semId, SEM_WAIT, GETVAL);
+            int size = 0;
+            if (semval)
+            {
+                struct sembuf rel[1] = 
+                {
+                    SEM_READ, 1, SEM_UNDO	// release critical section for another reader
+                };
+                releaseCriticalSection = rel;
+                size = 1;
+            }
+            else 
+            {
+                struct sembuf rel[2] = 
+                {
+                        SEM_WAIT, 1, SEM_UNDO,	// set sem_wait to let some writer decrement it
+                        SEM_READ, 1, SEM_UNDO	// release critical section for another reader
+                };
+                releaseCriticalSection = rel;
+                size = 2;
+            }
+
+            struct sembuf wait[1] = { SEM_WAIT, 0, 0 };		// wait for sem_wait to be 0
+
+            if ((semop(semId, releaseCriticalSection, size) < 0)
+                    || semtimedop(semId, wait, sizeof(wait)/sizeof(sembuf), &timeout_struct) < 0)
+            {
+                int err = errno;
+                if (errno == EAGAIN)
+                        if (debug) std::cerr << "[Linda read] Timeout" << std::endl;
+                else if (debug) std::cerr << "[Linda read] Error releasing critical section. Errno = " << errno << std::endl;
+                return nullptr;	
+            }
+        }
+        else
+        {
+            struct sembuf releaseCriticalSection[1] = 
+            {
+                SEM_READ, 1, SEM_UNDO,	// release critical section for another reader
+            };
+
+            if (semop(semId, releaseCriticalSection, 1) < 0)
+            {
+                if (debug) std::cerr << "[Linda input] Error releasing critical section. Errno = " << errno << std::endl;
+                return nullptr;	
+            }
+            return tuple;
+        }
+    }
 }
 
 #endif /* LINDA_H */
