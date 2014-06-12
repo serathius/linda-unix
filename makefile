@@ -14,6 +14,9 @@ $(EXEC): $(OBJECTS)
 %.o: %.cpp
 	@$(CXX) $(CFLAGS) -c $< -o $@
 
+manual: $(EXEC) 
+	@$(CXX) $(CFLAGS) tests/manual/main.cpp $(EXEC) -o manual.o
+
 test : libgtest.a $(TESTS) $(EXEC)
 	@$(CXX) $(CFLAGS) $(TEST_SYSTEM_FLAGS) -pthread $(TESTS) $(EXEC) libgtest.a -o test.o
 
