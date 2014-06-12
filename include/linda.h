@@ -223,57 +223,56 @@ Tuple<Elements...>* Linda::input(TuplePattern<Elements...> pattern, int timeout)
             }
         }		
 
-
         if (!got)
         {
-                end = time(NULL);
-                timeout_struct.tv_sec = timeout_struct.tv_sec - (begin - end);
-                if (timeout_struct.tv_sec <= 0)
-                {
+            end = time(NULL);
+            timeout_struct.tv_sec = timeout_struct.tv_sec - (begin - end);
+            if (timeout_struct.tv_sec <= 0)
+            {
+                if (debug) std::cerr << "[Linda input] Timeout" << std::endl;
+                return nullptr;
+            }
+
+            // get current processes count (could have changed during searching)
+            shmctl(shmId, IPC_STAT, &desc);
+
+            struct sembuf releaseCriticalSection[3] = 
+            {
+                SEM_READ, (short)(desc.shm_nattch), SEM_UNDO,	// release critical section for readers
+                SEM_WRITE, -1, SEM_UNDO,	// release critical section for writers
+                SEM_WAIT, 1, SEM_UNDO		// set sem_wait to let some writer decrement it 
+            };
+
+            struct sembuf wait[1] = { SEM_WAIT, 0, 0 };		// wait for sem_wait to be 0
+
+            if ((semop(semId, releaseCriticalSection, sizeof(releaseCriticalSection)/sizeof(sembuf)) < 0)
+                    || semtimedop(semId, wait, sizeof(wait)/sizeof(sembuf), &timeout_struct) < 0)
+            {
+                int err = errno;
+                if (errno == EAGAIN)
                         if (debug) std::cerr << "[Linda input] Timeout" << std::endl;
-                        return nullptr;
-                }
-
-                // get current processes count (could have changed during searching)
-                shmctl(shmId, IPC_STAT, &desc);
-
-                struct sembuf releaseCriticalSection[3] = 
-                {
-                        SEM_READ, (short)(desc.shm_nattch), SEM_UNDO,	// release critical section for readers
-                        SEM_WRITE, -1, SEM_UNDO,	// release critical section for writers
-                        SEM_WAIT, 1, SEM_UNDO		// set sem_wait to let some writer decrement it 
-                };
-
-                struct sembuf wait[1] = { SEM_WAIT, 0, 0 };		// wait for sem_wait to be 0
-
-                if ((semop(semId, releaseCriticalSection, sizeof(releaseCriticalSection)/sizeof(sembuf)) < 0)
-                        || semtimedop(semId, wait, sizeof(wait)/sizeof(sembuf), &timeout_struct) < 0)
-                {
-                        int err = errno;
-                        if (errno == EAGAIN)
-                                if (debug) std::cerr << "[Linda input] Timeout" << std::endl;
-                        else if (debug) std::cerr << "[Linda input] Error releasing critical section. Errno = " << errno << std::endl;
-                        return nullptr;	
-                }
+                else if (debug) std::cerr << "[Linda input] Error releasing critical section. Errno = " << errno << std::endl;
+                return nullptr;	
+            }
         }
         else
         {
-                // get current processes count (could have changed during searching)
-                shmctl(shmId, IPC_STAT, &desc);
+            // get current processes count (could have changed during searching)
+            shmctl(shmId, IPC_STAT, &desc);
 
-                struct sembuf releaseCriticalSection[2] = 
-                {
-                        SEM_READ, (short)(desc.shm_nattch), SEM_UNDO,	// release critical section for readers
-                        SEM_WRITE, -1, SEM_UNDO	// release critical section for writers
-                };
+            struct sembuf releaseCriticalSection[2] = 
+            {
+                SEM_READ, (short)(desc.shm_nattch), SEM_UNDO,	// release critical section for readers
+                SEM_WRITE, -1, SEM_UNDO	// release critical section for writers
+            };
 
-                if (semop(semId, releaseCriticalSection, sizeof(releaseCriticalSection)/sizeof(sembuf)) < 0)
-                {
-                        if (debug) std::cerr << "[Linda input] Error releasing critical section. Errno = " << errno << std::endl;
-                        return nullptr;	
-                }
+            if (semop(semId, releaseCriticalSection, sizeof(releaseCriticalSection)/sizeof(sembuf)) < 0)
+            {
+                if (debug) std::cerr << "[Linda input] Error releasing critical section. Errno = " << errno << std::endl;
+                return nullptr;	
+            }
 
-                return tuple;
+            return tuple;
         }
     }
 }
