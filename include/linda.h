@@ -22,42 +22,39 @@
 class Linda
 {
 public:	
-	static const int MAX_TUPLES = 100;
-	static const char TUPLE_INVALID = 1;
-	static const char TUPLE_VALID = 0;
+    static const int MAX_TUPLES = 100;
+    static const char TUPLE_INVALID = 1;
+    static const char TUPLE_VALID = 0;
 
 private:
-	struct ShmTuple
-	{
-		char valid;
-		GenericTuple tuple;
-	};
-	
-	struct SharedMemory
-	{
-		int semKey;
-		ShmTuple tupleArray[MAX_TUPLES];
-	};
-	
-	int semId, shmId;
-	SharedMemory *shm; 
-	bool debug;
+    struct ShmTuple
+    {
+        char valid;
+        GenericTuple tuple;
+    };
+
+    struct SharedMemory
+    {
+        int semKey;
+        ShmTuple tupleArray[MAX_TUPLES];
+    };
+
+    int semId, shmId;
+    SharedMemory *shm; 
+    bool debug;
 	
 public:
 	
-	Linda() : semId(0), shm(nullptr), debug(false) {}
-	
-	~Linda();
-	
-	void setDebugMode(bool debug) { this->debug = debug; }
-	
-	int init(key_t shm_key);
-        template <typename... Elements>
-	int output(Tuple<Elements...> &tuple);
-        template <typename... Elements>
-	Tuple<Elements...>* input(TuplePattern<Elements...> pattern, int timeout);
-        template <typename... Elements>
-	Tuple<Elements...>* read(TuplePattern<Elements...> pattern, int timeout);
+    Linda() : semId(0), shm(nullptr), debug(false) {}
+    ~Linda();
+    void setDebugMode(bool debug) { this->debug = debug; }
+    int init(key_t shm_key);
+    template <typename... Elements>
+    int output(Tuple<Elements...> &tuple);
+    template <typename... Elements>
+    Tuple<Elements...>* input(TuplePattern<Elements...> pattern, int timeout);
+    template <typename... Elements>
+    Tuple<Elements...>* read(TuplePattern<Elements...> pattern, int timeout);
 };
 
 /**
