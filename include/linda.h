@@ -202,7 +202,7 @@ Tuple<Elements...> Linda::input(TuplePattern<Elements...> pattern, int timeout)
 	timeout_struct.tv_sec = (time_t)timeout;
 	timeout_struct.tv_nsec = 0;
 	
-	Tuple<Elements...> tuple();
+	Tuple<Elements...>* tuple;
 	while (!got)
 	{
 		begin = time(NULL);
@@ -224,7 +224,7 @@ Tuple<Elements...> Linda::input(TuplePattern<Elements...> pattern, int timeout)
 				if (pattern.match(shm->tupleArray[i].tuple))
 				{
 					//std::cout << "Matching tuple found" << std::endl<<std::flush;
-					tuple = (Tuple<Elements...>&)shm->tupleArray[i].tuple;
+					tuple = &((Tuple<Elements...>&)shm->tupleArray[i].tuple);
 					shm->tupleArray[i].valid = TUPLE_INVALID;
 					got = true;
 					break;
@@ -291,7 +291,7 @@ Tuple<Elements...> Linda::input(TuplePattern<Elements...> pattern, int timeout)
 				throw LindaError(err);
 			}
 			
-			return tuple;
+			return *tuple;
 		}
 	} // while
 	
@@ -329,7 +329,7 @@ Tuple<Elements...> Linda::read(TuplePattern<Elements...> pattern, int timeout)
 	timeout_struct.tv_sec = (time_t)timeout;
 	timeout_struct.tv_nsec = 0;
 	
-	Tuple<Elements...> tuple;
+	Tuple<Elements...>* tuple;
 
 	struct sembuf getCriticalSection[1] = 
 	{
@@ -362,7 +362,7 @@ Tuple<Elements...> Linda::read(TuplePattern<Elements...> pattern, int timeout)
 			{
 				if (pattern.match(shm->tupleArray[i].tuple))
 				{
-					tuple = (Tuple<Elements...>&)shm->tupleArray[i].tuple;
+					tuple = &((Tuple<Elements...>&)shm->tupleArray[i].tuple);
 					got = true;
 					break;
 				}
@@ -435,7 +435,7 @@ Tuple<Elements...> Linda::read(TuplePattern<Elements...> pattern, int timeout)
 				if (debug) std::cerr << "[Linda input] Error releasing critical section." << std::endl;
 				throw LindaError(err);	
 			}
-			return tuple;
+			return *tuple;
 		}
 	} // while
 }
