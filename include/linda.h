@@ -12,12 +12,15 @@
 #include "../include/linda.h"
 #include "../include/tuple_pattern.h"
 #include "../include/tuple.h"
+#include "../include/exceptions.h"
 
 #define SEM_WRITE 0
 #define SEM_READ 1
 #define SEM_WAIT 2
 
-#define E_UNINITIALIZED 1
+#define E_UNINITIALIZED 0xf1
+#define E_BADTIMEOUT 0xf2
+#define E_TIMEOUT 0xf5
 
 class Linda
 {
@@ -55,9 +58,9 @@ public:
         template <typename... Elements>
 	int output(Tuple<Elements...> &tuple);
         template <typename... Elements>
-	Tuple<Elements...>* input(TuplePattern<Elements...> pattern, int timeout);
+	Tuple<Elements...> input(TuplePattern<Elements...> pattern, int timeout);
         template <typename... Elements>
-	Tuple<Elements...>* read(TuplePattern<Elements...> pattern, int timeout);
+	Tuple<Elements...> read(TuplePattern<Elements...> pattern, int timeout);
 };
 
 /**
@@ -75,7 +78,7 @@ public:
 template <typename... Elements>
 int Linda::output(Tuple<Elements...> &tuple)
 {
-	if (!shm) return E_UNINITIALIZED;
+	if (!shm) throw LindaError(E_UNINITIALIZED);
 	
 	if (debug) std::cout << "[Linda] output" << std::endl;
 	
@@ -96,7 +99,7 @@ int Linda::output(Tuple<Elements...> &tuple)
 	{
 		int err = errno;
 		if (debug) std::cerr << "[Linda output] Error getting critical section." << std::endl;
-		return err;	
+		throw LindaError(err);	
 	}
 
 	for (int i = 0; i < MAX_TUPLES; ++i)
@@ -128,7 +131,7 @@ int Linda::output(Tuple<Elements...> &tuple)
 		{
 			int err = errno;
 			if (debug) std::cerr << "[Linda output] Error releasing critical section." << std::endl;
-			return err;	
+			throw LindaError(err);	
 		}
 	}
 	else
@@ -147,7 +150,7 @@ int Linda::output(Tuple<Elements...> &tuple)
 		{
 			int err = errno;
 			if (debug) std::cerr << "[Linda output] Error releasing critical section. Errno = " << errno << std::endl;
-			return err;	
+			throw LindaError(err);	
 		}
 
 	}
@@ -171,9 +174,10 @@ int Linda::output(Tuple<Elements...> &tuple)
  * more information about which part caused error
  */
 template <typename... Elements>
-Tuple<Elements...>* Linda::input(TuplePattern<Elements...> pattern, int timeout)
+Tuple<Elements...> Linda::input(TuplePattern<Elements...> pattern, int timeout)
 {	
-	if (!shm || !timeout) return nullptr;
+	if (!shm) throw LindaError(E_UNINITIALIZED);
+	if (!timeout) throw LindaError(E_BADTIMEOUT);
 	
 	if (debug) std::cout << "[Linda] input" << std::endl;
 	
@@ -198,7 +202,7 @@ Tuple<Elements...>* Linda::input(TuplePattern<Elements...> pattern, int timeout)
 	timeout_struct.tv_sec = (time_t)timeout;
 	timeout_struct.tv_nsec = 0;
 	
-	Tuple<Elements...>* tuple;
+	Tuple<Elements...> tuple();
 	while (!got)
 	{
 		begin = time(NULL);
@@ -206,8 +210,8 @@ Tuple<Elements...>* Linda::input(TuplePattern<Elements...> pattern, int timeout)
 		{
 			int res = errno;
 			if (errno != EAGAIN)
-				if (debug) std::cerr << "[Linda input] Error getting critical section. Errno = " << errno << std::endl;
-			return nullptr;	
+				if (debug) std::cerr << "[Linda input] Error getting critical section." << std::endl;
+			throw LindaError(res);
 		}
 		
 		for (int i = 0; i < MAX_TUPLES; ++i)
@@ -220,7 +224,7 @@ Tuple<Elements...>* Linda::input(TuplePattern<Elements...> pattern, int timeout)
 				if (pattern.match(shm->tupleArray[i].tuple))
 				{
 					//std::cout << "Matching tuple found" << std::endl<<std::flush;
-					tuple = new Tuple<Elements...>((Tuple<Elements...>&)shm->tupleArray[i].tuple);
+					tuple = (Tuple<Elements...>&)shm->tupleArray[i].tuple;
 					shm->tupleArray[i].valid = TUPLE_INVALID;
 					got = true;
 					break;
@@ -237,7 +241,7 @@ Tuple<Elements...>* Linda::input(TuplePattern<Elements...> pattern, int timeout)
 			if (timeout_struct.tv_sec <= 0)
 			{
 				if (debug) std::cerr << "[Linda input] Timeout" << std::endl;
-				return nullptr;
+				throw LindaError(E_TIMEOUT);
 			}
 			
 			// get current processes count (could have changed during searching)
@@ -257,9 +261,16 @@ Tuple<Elements...>* Linda::input(TuplePattern<Elements...> pattern, int timeout)
 			{
 				int err = errno;
 				if (errno == EAGAIN)
+				{
 					if (debug) std::cerr << "[Linda input] Timeout" << std::endl;
-				else if (debug) std::cerr << "[Linda input] Error releasing critical section. Errno = " << errno << std::endl;
-				return nullptr;	
+					throw LindaError(E_TIMEOUT);
+				}
+				else
+				{ 
+					int err = errno;
+					if (debug) std::cerr << "[Linda input] Error releasing critical section." << std::endl;
+					throw LindaError(err);
+				}	
 			}
 		}
 		else
@@ -275,8 +286,9 @@ Tuple<Elements...>* Linda::input(TuplePattern<Elements...> pattern, int timeout)
 			
 			if (semop(semId, releaseCriticalSection, sizeof(releaseCriticalSection)/sizeof(sembuf)) < 0)
 			{
-				if (debug) std::cerr << "[Linda input] Error releasing critical section. Errno = " << errno << std::endl;
-				return nullptr;	
+				int err = errno;
+				if (debug) std::cerr << "[Linda input] Error releasing critical section." << std::endl;
+				throw LindaError(err);
 			}
 			
 			return tuple;
@@ -302,9 +314,10 @@ Tuple<Elements...>* Linda::input(TuplePattern<Elements...> pattern, int timeout)
  * more information about which part caused error
  */
 template <typename... Elements>
-Tuple<Elements...>* Linda::read(TuplePattern<Elements...> pattern, int timeout)
+Tuple<Elements...> Linda::read(TuplePattern<Elements...> pattern, int timeout)
 {	
-	if (!shm || !timeout) return nullptr;
+	if (!shm) throw LindaError(E_UNINITIALIZED);
+	if (timeout) throw LindaError(E_BADTIMEOUT);
 	
 	if (debug) std::cout << "[Linda] read" << std::endl;
 	
@@ -316,7 +329,7 @@ Tuple<Elements...>* Linda::read(TuplePattern<Elements...> pattern, int timeout)
 	timeout_struct.tv_sec = (time_t)timeout;
 	timeout_struct.tv_nsec = 0;
 	
-	Tuple<Elements...>* tuple;
+	Tuple<Elements...> tuple;
 
 	struct sembuf getCriticalSection[1] = 
 	{
@@ -330,10 +343,17 @@ Tuple<Elements...>* Linda::read(TuplePattern<Elements...> pattern, int timeout)
 		if (semtimedop(semId, getCriticalSection, sizeof(getCriticalSection)/sizeof(sembuf), &timeout_struct) < 0)
 		{
 			int err = errno;
-			if (errno == EAGAIN) 
+			if (errno == EAGAIN)
+			{
 				if (debug) std::cerr << "[Linda read] Timeout" << std::endl;
-			else if (debug) std::cerr << "[Linda read] Error getting critical section. Errno = " << errno << std::endl;
-			return nullptr;	
+				throw LindaError(E_TIMEOUT);
+			}
+			else
+			{
+				int err = errno;
+				if (debug) std::cerr << "[Linda read] Error getting critical section." << std::endl;
+				throw LindaError(err);
+			}	
 		}
 		
 		for (int i = 0; i < MAX_TUPLES; ++i)
@@ -342,7 +362,7 @@ Tuple<Elements...>* Linda::read(TuplePattern<Elements...> pattern, int timeout)
 			{
 				if (pattern.match(shm->tupleArray[i].tuple))
 				{
-					tuple = new Tuple<Elements...>((Tuple<Elements...>&)shm->tupleArray[i].tuple);
+					tuple = (Tuple<Elements...>&)shm->tupleArray[i].tuple;
 					got = true;
 					break;
 				}
@@ -357,7 +377,7 @@ Tuple<Elements...>* Linda::read(TuplePattern<Elements...> pattern, int timeout)
 			if (timeout_struct.tv_sec <= 0)
 			{
 				if (debug) std::cerr << "[Linda input] timeout" << std::endl;
-				return nullptr;
+				throw LindaError(E_TIMEOUT);
 			}
 			
 			struct sembuf *releaseCriticalSection;
@@ -390,9 +410,16 @@ Tuple<Elements...>* Linda::read(TuplePattern<Elements...> pattern, int timeout)
 			{
 				int err = errno;
 				if (errno == EAGAIN)
+				{
 					if (debug) std::cerr << "[Linda read] Timeout" << std::endl;
-				else if (debug) std::cerr << "[Linda read] Error releasing critical section. Errno = " << errno << std::endl;
-				return nullptr;	
+					throw LindaError(E_TIMEOUT);
+				}
+				else
+				{
+					int err = errno;
+					if (debug) std::cerr << "[Linda read] Error releasing critical section." << std::endl;
+					throw LindaError(err);
+				}
 			}
 		}
 		else
@@ -404,8 +431,9 @@ Tuple<Elements...>* Linda::read(TuplePattern<Elements...> pattern, int timeout)
 			
 			if (semop(semId, releaseCriticalSection, 1) < 0)
 			{
-				if (debug) std::cerr << "[Linda input] Error releasing critical section. Errno = " << errno << std::endl;
-				return nullptr;	
+				int err = errno;
+				if (debug) std::cerr << "[Linda input] Error releasing critical section." << std::endl;
+				throw LindaError(err);	
 			}
 			return tuple;
 		}
