@@ -103,30 +103,31 @@ int Linda::init(key_t shm_key)
 
 Linda::~Linda()
 {
-	if (debug) std::cout<<"[Linda] Destroying..."<<std::endl;
-	if (shm != nullptr)
-	{
-		struct sembuf getCriticalSection[1] = 
-		{
-			SEM_READ, -1, 0
-		};
-		if (semop(semId, getCriticalSection, 1) < 0)
-		{
-			if (debug) std::cerr << "[Linda input] Error refreshing readers' semaphore limit. Errno = " << errno << std::endl;
-		}
+    if (debug) 
+        std::cout<<"[Linda] Destroying..."<<std::endl;
+    if (shm != nullptr)
+    {
+        struct sembuf getCriticalSection[1] = 
+        {
+            SEM_READ, -1, 0
+        };
+        if (semop(semId, getCriticalSection, 1) < 0)
+        {
+            if (debug) std::cerr << "[Linda input] Error refreshing readers' semaphore limit. Errno = " << errno << std::endl;
+        }
 
-		struct shmid_ds desc;
-		shmctl(shmId, IPC_STAT, &desc);
-		
-		if (desc.shm_nattch == 1)
-		{
-			shmdt(shm);
-			shmctl(shmId, IPC_RMID, NULL); // delete shared memory segment
-			semctl(semId, 3, IPC_RMID, NULL); // delete semaphores set
-		}
-		else
-			shmdt(shm);
-	}
+        struct shmid_ds desc;
+        shmctl(shmId, IPC_STAT, &desc);
+
+        if (desc.shm_nattch == 1)
+        {
+            shmdt(shm);
+            shmctl(shmId, IPC_RMID, NULL); // delete shared memory segment
+            semctl(semId, 3, IPC_RMID, NULL); // delete semaphores set
+        }
+        else
+            shmdt(shm);
+    }
 }
 
 
