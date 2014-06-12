@@ -120,8 +120,8 @@ int Linda::output(Tuple<Elements...> &tuple)
 		
 		struct sembuf releaseCriticalSection[2] = 
 		{
-			SEM_READ, (short)(desc.shm_nattch), SEM_UNDO,	// release critical section for readers
-			SEM_WRITE, -1, SEM_UNDO			// release critical section for writers
+			SEM_READ, (short)(desc.shm_nattch), 0,	// release critical section for readers
+			SEM_WRITE, -1, 0			// release critical section for writers
 		};
 		
 		if (semop(semId, releaseCriticalSection, sizeof(releaseCriticalSection)/sizeof(sembuf)) < 0)
@@ -138,9 +138,9 @@ int Linda::output(Tuple<Elements...> &tuple)
 		
 		struct sembuf releaseCriticalSection[3] = 
 		{
-			SEM_READ, (short)(desc.shm_nattch), SEM_UNDO,	// release critical section for readers
-			SEM_WAIT, (short)-semval, SEM_UNDO,		// wake up readers waiting for new data
-			SEM_WRITE, -1, SEM_UNDO			// release critical section for writers
+			SEM_READ, (short)(desc.shm_nattch), 0,	// release critical section for readers
+			SEM_WAIT, (short)-semval, 0,		// wake up readers waiting for new data
+			SEM_WRITE, -1, 0			// release critical section for writers
 		};
 		
 		if (semop(semId, releaseCriticalSection, sizeof(releaseCriticalSection)/sizeof(sembuf)) < 0)
@@ -245,8 +245,8 @@ Tuple<Elements...>* Linda::input(TuplePattern<Elements...> pattern, int timeout)
 			
 			struct sembuf releaseCriticalSection[3] = 
 			{
-				SEM_READ, (short)(desc.shm_nattch), SEM_UNDO,	// release critical section for readers
-				SEM_WRITE, -1, SEM_UNDO,	// release critical section for writers
+				SEM_READ, (short)(desc.shm_nattch), 0,	// release critical section for readers
+				SEM_WRITE, -1, 0,	// release critical section for writers
 				SEM_WAIT, 1, SEM_UNDO		// set sem_wait to let some writer decrement it 
 			};
 			
@@ -269,8 +269,8 @@ Tuple<Elements...>* Linda::input(TuplePattern<Elements...> pattern, int timeout)
 			
 			struct sembuf releaseCriticalSection[2] = 
 			{
-				SEM_READ, (short)(desc.shm_nattch), SEM_UNDO,	// release critical section for readers
-				SEM_WRITE, -1, SEM_UNDO	// release critical section for writers
+				SEM_READ, (short)(desc.shm_nattch), 0,	// release critical section for readers
+				SEM_WRITE, -1, 0	// release critical section for writers
 			};
 			
 			if (semop(semId, releaseCriticalSection, sizeof(releaseCriticalSection)/sizeof(sembuf)) < 0)
@@ -367,7 +367,7 @@ Tuple<Elements...>* Linda::read(TuplePattern<Elements...> pattern, int timeout)
 			{
 				struct sembuf rel[1] = 
 				{
-					SEM_READ, 1, SEM_UNDO	// release critical section for another reader
+					SEM_READ, 1, 0	// release critical section for another reader
 				};
 				releaseCriticalSection = rel;
 				size = 1;
@@ -377,7 +377,7 @@ Tuple<Elements...>* Linda::read(TuplePattern<Elements...> pattern, int timeout)
 				struct sembuf rel[2] = 
 				{
 					SEM_WAIT, 1, SEM_UNDO,	// set sem_wait to let some writer decrement it
-					SEM_READ, 1, SEM_UNDO	// release critical section for another reader
+					SEM_READ, 1, 0	// release critical section for another reader
 				};
 				releaseCriticalSection = rel;
 				size = 2;
@@ -399,7 +399,7 @@ Tuple<Elements...>* Linda::read(TuplePattern<Elements...> pattern, int timeout)
 		{
 			struct sembuf releaseCriticalSection[1] = 
 			{
-				SEM_READ, 1, SEM_UNDO,	// release critical section for another reader
+				SEM_READ, 1, 0,	// release critical section for another reader
 			};
 			
 			if (semop(semId, releaseCriticalSection, 1) < 0)
